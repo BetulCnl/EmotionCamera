@@ -1,67 +1,65 @@
 # EmotionCamera
 
-Bu proje, gerçek zamanlı kamera görüntüsü üzerinden duygu ve el hareketi tanıma işlemleri gerçekleştirerek, kullanıcıya uygun çıkartmalar (sticker) gösteren yapay zeka tabanlı bir uygulamadır.
+Webcam görüntüsünden yüz ifadesini ve bazı el hareketlerini tanıyıp duruma uygun bir kedi/maymun çıkartması gösteren uygulama. Masaüstünde OpenCV penceresiyle ya da tarayıcıda Streamlit ile çalışıyor.
 
-## Özellikler
+## Nasıl çalışıyor
 
-*   **Duygu Tanıma:** Kullanıcının yüz ifadelerinden anlık duygu durumunu (Mutlu, Üzgün, Kızgın, Korkmuş, İğrenmiş vb.) tespit eder.
-*   **El Hareketi Tanıma:** "Tamam" (OK), "Başparmak Yukarı" (Thumbs Up) ve "Düşünme" gibi el hareketlerini algılar.
-*   **Özel Efektler:** Dil çıkarma gibi özel mimikleri algılayarak "çılgın kedi" gibi eğlenceli çıkartmalar ekler.
-*   **Çift Arayüz:** İster masaüstü uygulaması olarak (OpenCV penceresi), ister tarayıcı üzerinden (Streamlit) çalıştırılabilir.
+- **Duygu:** DeepFace her 5 karede bir, ayrı bir thread'de çalışır. Sonuç son 7 tahminin çoğunluğuna göre yumuşatılır.
+- **El hareketi:** MediaPipe Hand Landmarker ile parmak noktaları bulunur, kurallarla "OK", "başparmak yukarı" ve "düşünme" (işaret parmağı çeneye yakın) ayırt edilir.
+- **Dil çıkarma:** Ağız bölgesindeki kırmızı ve koyu piksel oranına bakan basit bir sezgisel kontrol.
+
+Öncelik sırası: el hareketi > dil çıkarma > duygu.
+
+| Algılanan | Çıkartma |
+|---|---|
+| OK veya başparmak yukarı | `okay_monkey` |
+| Düşünme | `thinking_monkey` |
+| Dil çıkarma / iğrenme | `crazy_cat` |
+| Mutlu | `happy_cat` |
+| Üzgün | `sad_cat` |
+| Kızgın | `angry_monkey` |
+| Korku / şaşkınlık | `scared_monkey` |
 
 ## Kurulum
 
-1.  Bu projeyi bilgisayarınıza indirin.
-2.  Sanal ortam (virtual environment) oluşturun ve aktif edin:
+Proje Windows'ta geliştirildi: kamera `CAP_DSHOW` ile açılıyor, `requirements.txt` içinde `tensorflow-intel` var ve `.bat` dosyaları Windows için. Başka işletim sisteminde bu noktaların değiştirilmesi gerekir.
 
-    ```bash
-    python -m venv venv
-    venv\Scripts\activate
-    ```
+```bash
+python -m venv venv
+venv\Scripts\activate
+pip install -r requirements.txt
+```
 
-3.  Gerekli Python kütüphanelerini yükleyin:
+El modeli repoda yok. [MediaPipe Hand Landmarker](https://ai.google.dev/edge/mediapipe/solutions/vision/hand_landmarker) sayfasından `hand_landmarker.task` dosyasını indirip şu yola koy:
 
-    ```bash
-    pip install -r requirements.txt
-    ```
+```
+source/assets/models/hand_landmarker.task
+```
 
-4.  **Model Dosyasını İndirin:**
-    *   `assets` klasörü içine `models` adında yeni bir klasör oluşturun.
-    *   Google MediaPipe `hand_landmarker.task` dosyasını indirin ve `assets/models/` içine kaydedin.
-    *   *(Bu dosya proje boyutunu artırmamak için burada eklenmemiştir.)*
+DeepFace ilk çalıştırmada kendi duygu modelini internetten indirir.
 
-## Kullanım
+## Çalıştırma
 
-### Masaüstü Uygulaması (Hızlı Mod)
-
-Bilgisayarınızda basit bir pencere olarak çalıştırmak için:
+Masaüstü penceresi (`q` veya `Esc` ile çıkılır):
 
 ```bash
 python source/main.py
 ```
 
-### Web Arayüzü (Görsel Mod)
-
-Daha şık bir arayüz ile tarayıcı üzerinden kullanmak için:
-
-```bash
-run_web.bat
-```
-
-veya terminalden:
+Tarayıcı arayüzü:
 
 ```bash
 streamlit run source/streamlit_app.py
 ```
 
-## Teknolojiler
+Aynı işi `run.bat` ve `run_web.bat` de yapıyor (önce `venv`'i etkinleştiriyorlar).
 
-*   Python
-*   OpenCV (Görüntü İşleme)
-*   MediaPipe (El ve Yüz İşaretçileri)
-*   DeepFace (Duygu Analizi)
-*   Streamlit (Web Arayüzü)
+## Dosyalar
 
----
-
-**Not:** Uygulamanın düzgün çalışması için kamera erişimine izin vermeniz gerekmektedir.
+```
+source/processor.py      tüm algılama mantığı (EmotionProcessor)
+source/main.py           OpenCV penceresi
+source/streamlit_app.py  Streamlit arayüzü
+source/assets/           kodun kullandığı çıkartma görselleri
+assets/                  aynı görsellerin kopyası (kod burayı kullanmıyor)
+```
